@@ -51,12 +51,18 @@
             <argument>%sulu_media.entity.file_version_meta%</argument>
         </service>
         <service id="sulu_media.storage.file_system" class="Symfony\Component\Filesystem\Filesystem"/>
-        <service id="sulu_media.storage" class="%sulu_media.storage.class%">
-            <argument>%sulu_media.media.storage.local.path%</argument>
-            <argument>%sulu_media.media.storage.local.segments%</argument>
-            <argument type="service" id="sulu_media.storage.file_system"/>
+        <service id="sulu_media.storage" class="Sulu\Bundle\MediaBundle\Media\Storage\S3Storage">
+            <argument>smartintdevelop</argument>
+            <argument>/sulu_dev/uploads/media</argument>
+            <argument>10</argument>
             <argument type="service" id="logger"/>
         </service>
+        <!--<service id="sulu_media.storage" class="%sulu_media.storage.class%">-->
+            <!--<argument>%sulu_media.media.storage.local.path%</argument>-->
+            <!--<argument>%sulu_media.media.storage.local.segments%</argument>-->
+            <!--<argument type="service" id="sulu_media.storage.file_system"/>-->
+            <!--<argument type="service" id="logger"/>-->
+        <!--</service>-->
         <service id="sulu_media.file_validator" class="%sulu_media.file_validator.class%" />
 
         <service id="sulu_media.format_cache_clearer" class="%sulu_media.format_cache_clearer.class%" />
