@@ -51,12 +51,12 @@
             <argument>%sulu_media.entity.file_version_meta%</argument>
         </service>
         <service id="sulu_media.storage.file_system" class="Symfony\Component\Filesystem\Filesystem"/>
-        <service id="sulu_media.storage" class="Sulu\Bundle\MediaBundle\Media\Storage\S3Storage">
-            <argument type="service" id="sulu_media.s3.filesystem_bridge"/>
-            <argument>/sulu_dev/uploads/media</argument>
-            <argument>10</argument>
-            <argument type="service" id="logger"/>
-        </service>
+        <!--<service id="sulu_media.storage" class="Sulu\Bundle\MediaBundle\Media\Storage\S3Storage">-->
+            <!--<argument type="service" id="sulu_media.s3.filesystem_bridge"/>-->
+            <!--<argument>/sulu_dev/uploads/media</argument>-->
+            <!--<argument>10</argument>-->
+            <!--<argument type="service" id="logger"/>-->
+        <!--</service>-->
         <!--<service id="sulu_media.storage" class="%sulu_media.storage.class%">-->
             <!--<argument>%sulu_media.media.storage.local.path%</argument>-->
             <!--<argument>%sulu_media.media.storage.local.segments%</argument>-->
@@ -66,14 +66,14 @@
         <service id="sulu_media.file_validator" class="%sulu_media.file_validator.class%" />
 
         <service id="sulu_media.format_cache_clearer" class="%sulu_media.format_cache_clearer.class%" />
-        <service id="sulu_media.format_cache" class="Sulu\Bundle\MediaBundle\Media\FormatCache\S3FormatCache">
-            <argument type="service" id="sulu_media.s3.filesystem_bridge"/>
-            <argument>%sulu_media.format_cache.path%</argument>
-            <argument>%sulu_media.format_cache.media_proxy_path%</argument>
-            <argument>%sulu_media.format_cache.segments%</argument>
-            <argument>%sulu_media.image.formats%</argument>
-            <tag name="sulu_media.format_cache" alias="s3" />
-        </service>
+        <!--<service id="sulu_media.format_cache" class="Sulu\Bundle\MediaBundle\Media\FormatCache\S3FormatCache">-->
+            <!--<argument type="service" id="sulu_media.s3.filesystem_bridge"/>-->
+            <!--<argument>%sulu_media.format_cache.path%</argument>-->
+            <!--<argument>%sulu_media.format_cache.media_proxy_path%</argument>-->
+            <!--<argument>%sulu_media.format_cache.segments%</argument>-->
+            <!--<argument>%sulu_media.image.formats%</argument>-->
+            <!--<tag name="sulu_media.format_cache" alias="s3" />-->
+        <!--</service>-->
         <!--<service id="sulu_media.format_cache" class="%sulu_media.format_cache.class%">-->
             <!--<argument type="service" id="filesystem"/>-->
             <!--<argument>%sulu_media.format_cache.path%</argument>-->

@@ -14,6 +14,7 @@ namespace Sulu\Bundle\MediaBundle;
 use Sulu\Bundle\MediaBundle\DependencyInjection\FormatCacheClearerCompilerPass;
 use Sulu\Bundle\MediaBundle\DependencyInjection\ImageFormatCompilerPass;
 use Sulu\Bundle\MediaBundle\DependencyInjection\ImageTransformationCompilerPass;
+use Sulu\Bundle\MediaBundle\DependencyInjection\StorageCompilerPass;
 use Sulu\Bundle\PersistenceBundle\PersistenceBundleTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
@@ -34,6 +35,7 @@ class SuluMediaBundle extends Bundle
             $container
         );
 
+        $container->addCompilerPass(new StorageCompilerPass());
         $container->addCompilerPass(new FormatCacheClearerCompilerPass());
         $container->addCompilerPass(new ImageFormatCompilerPass());
         $container->addCompilerPass(new ImageTransformationCompilerPass());
