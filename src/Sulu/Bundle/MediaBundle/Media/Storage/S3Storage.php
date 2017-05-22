@@ -101,16 +101,13 @@ class S3Storage implements StorageInterface
      */
     public function load($fileName, $version, $storageOption)
     {
-        $this->storageOption = json_decode($storageOption);
+        $path = $this->getPath($fileName, $storageOption);
 
-        $segment = $this->getStorageOption('segment');
-        $fileName = $this->getStorageOption('fileName');
-
-        if ($segment && $fileName) {
-            return ltrim($this->uploadPath . '/' . $segment . '/' . $fileName, '/');
+        if (!$path) {
+            return false;
         }
 
-        return false;
+        return $this->filesystem->getAdapter()->getUrl($path);
     }
 
     /**
@@ -118,7 +115,7 @@ class S3Storage implements StorageInterface
      */
     public function loadAsString($fileName, $version, $storageOption)
     {
-        $path = $this->load($fileName, $version, $storageOption);
+        $path = $this->getPath($fileName, $storageOption);
 
         if (!$path || !$this->filesystem->has($path)) {
             throw new ImageProxyMediaNotFoundException(sprintf('Original media at path "%s" not found', $path));
@@ -198,6 +195,27 @@ class S3Storage implements StorageInterface
     private function getPathByFolderAndFileName($folder, $fileName)
     {
         return ltrim(rtrim($folder, '/'), '/') . '/' . ltrim($fileName, '/');
+    }
+
+    /**
+     * @param string $fileName
+     * @param string $storageOption
+     * @return bool|string
+     */
+    private function getPath($fileName, $storageOption)
+    {
+        $this->storageOption = json_decode($storageOption);
+
+        $segment = $this->getStorageOption('segment');
+        $fileName = $this->getStorageOption('fileName');
+
+        if (!$segment || !$fileName) {
+            return false;
+        }
+
+        $segmentPath = $this->uploadPath . '/' . $segment;
+
+        return $this->getPathByFolderAndFileName($segmentPath, $fileName);
     }
 
     /**

@@ -17,6 +17,7 @@ use Sulu\Bundle\MediaBundle\Media\Exception\ImageProxyException;
 use Sulu\Bundle\MediaBundle\Media\Exception\MediaException;
 use Sulu\Bundle\MediaBundle\Media\FormatManager\FormatManagerInterface;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
+use Sulu\Bundle\MediaBundle\Media\Storage\LocalStorage;
 use Sulu\Bundle\MediaBundle\Media\Storage\StorageInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -107,13 +108,14 @@ class MediaStreamController extends Controller
      * @param string $locale
      * @param string $dispositionType
      *
-     * @return BinaryFileResponse
+     * @return BinaryFileResponse|Response
      */
     protected function getFileResponse(
         $fileVersion,
         $locale,
         $dispositionType = ResponseHeaderBag::DISPOSITION_ATTACHMENT
-    ) {
+    )
+    {
         $cleaner = $this->get('sulu.content.path_cleaner');
 
         $fileName = $fileVersion->getName();
@@ -124,7 +126,11 @@ class MediaStreamController extends Controller
 
         $path = $this->getStorage()->load($fileName, $version, $storageOptions);
 
-        $response = new BinaryFileResponse($path);
+        if ($this->getStorage() instanceof LocalStorage) {
+            $response = new BinaryFileResponse($path);
+        } else {
+            $response = new Response(file_get_contents($path));
+        }
 
         $pathInfo = pathinfo($fileName);
 
