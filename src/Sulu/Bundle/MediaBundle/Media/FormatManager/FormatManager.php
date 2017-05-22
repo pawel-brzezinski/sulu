@@ -283,7 +283,7 @@ class FormatManager implements FormatManagerInterface
 
     /**
      * @param string $filename
-     * @param string $newExtension
+     * @param string $mimeType
      *
      * @return string
      */

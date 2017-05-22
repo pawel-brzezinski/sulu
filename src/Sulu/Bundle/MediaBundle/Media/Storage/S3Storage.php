@@ -12,10 +12,10 @@
 namespace Sulu\Bundle\MediaBundle\Media\Storage;
 
 use stdClass;
-use Aws\S3\S3Client;
-use Gaufrette\Adapter\AwsS3 as AwsS3Adapter;
 use Gaufrette\Filesystem;
 use Sulu\Bundle\MediaBundle\Media\Exception\FilenameAlreadyExistsException;
+use Sulu\Bundle\MediaBundle\Media\Exception\ImageProxyMediaNotFoundException;
+use Sulu\Bundle\MediaBundle\Media\Filesystem\S3FilesystemBridge;
 use Symfony\Component\HttpKernel\Log\DebugLoggerInterface;
 use Symfony\Component\HttpKernel\Log\NullLogger;
 
@@ -47,33 +47,20 @@ class S3Storage implements StorageInterface
     protected $logger;
 
     /**
-     * @var S3Client
-     */
-    private $s3Client;
-
-    /**
      * @var Filesystem
      */
     private $filesystem;
 
-    public function __construct($bucketName, $uploadPath, $segments, DebugLoggerInterface $logger = null)
-    {
-        $this->bucketName = $bucketName;
+    public function __construct(
+        S3FilesystemBridge $filesystemBridge,
+        $uploadPath,
+        $segments,
+        DebugLoggerInterface $logger = null
+    ){
+        $this->filesystem = $filesystemBridge->getFilesystem();
         $this->uploadPath = $uploadPath;
         $this->segments = $segments;
         $this->logger = $logger ?: new NullLogger();
-
-        $this->s3Client = new S3Client([
-            'credentials' => [
-                'key' => 'AKIAJ26BO7BK5RREOGCQ',
-                'secret' => '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',
-            ],
-            'version' => 'latest',
-            'region' => 'eu-central-1',
-        ]);
-
-        $adapter = new AwsS3Adapter($this->s3Client, $this->bucketName, [], true);
-        $this->filesystem = new Filesystem($adapter);
     }
 
     /**
@@ -114,8 +101,16 @@ class S3Storage implements StorageInterface
      */
     public function load($fileName, $version, $storageOption)
     {
-        print_r('s3 load');
-        exit;
+        $this->storageOption = json_decode($storageOption);
+
+        $segment = $this->getStorageOption('segment');
+        $fileName = $this->getStorageOption('fileName');
+
+        if ($segment && $fileName) {
+            return ltrim($this->uploadPath . '/' . $segment . '/' . $fileName, '/');
+        }
+
+        return false;
     }
 
     /**
@@ -123,8 +118,13 @@ class S3Storage implements StorageInterface
      */
     public function loadAsString($fileName, $version, $storageOption)
     {
-        print_r('s3 load as string');
-        exit;
+        $path = $this->load($fileName, $version, $storageOption);
+
+        if (!$path || !$this->filesystem->has($path)) {
+            throw new ImageProxyMediaNotFoundException(sprintf('Original media at path "%s" not found', $path));
+        }
+
+        return $this->filesystem->read($path);
     }
 
     /**
@@ -132,8 +132,26 @@ class S3Storage implements StorageInterface
      */
     public function remove($storageOption)
     {
-        print_r('s3 remove');
-        exit;
+        $this->storageOption = json_decode($storageOption);
+
+        $segment = $this->getStorageOption('segment');
+        $fileName = $this->getStorageOption('fileName');
+
+        if (!$segment || !$fileName) {
+            return false;
+        }
+
+        $path = $this->getPathByFolderAndFileName($this->uploadPath . '/' . $segment, $fileName);
+
+        try {
+            if ($this->filesystem->has($path)) {
+                $this->filesystem->delete($path);
+            }
+        } catch (\Exception $exception) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -189,5 +207,15 @@ class S3Storage implements StorageInterface
     private function addStorageOption($key, $value)
     {
         $this->storageOption->$key = $value;
+    }
+
+    /**
+     * @param $key
+     *
+     * @return mixed
+     */
+    private function getStorageOption($key)
+    {
+        return isset($this->storageOption->$key) ? $this->storageOption->$key : null;
     }
 }
