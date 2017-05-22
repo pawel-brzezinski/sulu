@@ -132,13 +132,13 @@ class S3FormatCache implements FormatCacheInterface
      */
     public function clear()
     {
-        print_r('s3formatcache clear');exit;
-//        $cacheDir = ltrim($this->path, '/');
-//
-//        if ($this->filesystem->has($cacheDir)) {
-//            print_r('has');exit;
-//            $this->filesystem->delete($cacheDir);
-//        }
+        $cacheDir = ltrim($this->path, '/');
+
+        foreach ($this->filesystem->listKeys($cacheDir) as $file) {
+            if ($this->filesystem->has($file)) {
+                $this->filesystem->delete($file);
+            }
+        }
     }
 
     /**
