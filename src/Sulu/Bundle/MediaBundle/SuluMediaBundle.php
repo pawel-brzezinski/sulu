@@ -35,9 +35,9 @@ class SuluMediaBundle extends Bundle
             $container
         );
 
+        $container->addCompilerPass(new ImageFormatCompilerPass());
         $container->addCompilerPass(new StorageCompilerPass());
         $container->addCompilerPass(new FormatCacheClearerCompilerPass());
-        $container->addCompilerPass(new ImageFormatCompilerPass());
         $container->addCompilerPass(new ImageTransformationCompilerPass());
 
         parent::build($container);

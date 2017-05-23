@@ -85,8 +85,6 @@ class SuluMediaExtension extends Extension implements PrependExtensionInterface
     {
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
-        var_dump($config['storage']);
-        exit;
 
         // image-formats
         $container->setParameter('sulu_media.image_format_files', $config['image_format_files']);
@@ -130,6 +128,15 @@ class SuluMediaExtension extends Extension implements PrependExtensionInterface
         // local storage
         $container->setParameter('sulu_media.media.storage.local.path', $config['storage']['local']['path']);
         $container->setParameter('sulu_media.media.storage.local.segments', $config['storage']['local']['segments']);
+
+        // s3 storage
+        $container->setParameter('sulu_media.media.storage.type', $config['storage']['type']);
+        $container->setParameter('sulu_media.media.storage.s3.path', $config['storage']['s3']['path']);
+        $container->setParameter('sulu_media.media.storage.s3.segments', $config['storage']['s3']['segments']);
+        $container->setParameter('sulu_media.media.storage.s3.api_key', $config['storage']['s3']['api_key']);
+        $container->setParameter('sulu_media.media.storage.s3.api_secret', $config['storage']['s3']['api_secret']);
+        $container->setParameter('sulu_media.media.storage.s3.bucket_name', $config['storage']['s3']['bucket_name']);
+        $container->setParameter('sulu_media.media.storage.s3.bucket_region', $config['storage']['s3']['bucket_region']);
 
         // collections
         $container->setParameter('sulu_media.collection.type.default', ['id' => 1]);
