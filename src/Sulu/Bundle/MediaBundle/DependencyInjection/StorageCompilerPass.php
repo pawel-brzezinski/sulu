@@ -87,7 +87,6 @@ class StorageCompilerPass implements CompilerPassInterface
                 $container->getDefinition('sulu_media.s3.filesystem_bridge'),
                 $container->getParameter('sulu_media.media.storage.s3.path'),
                 $container->getParameter('sulu_media.media.storage.s3.segments'),
-                null,
             ]);
 
         return $this;

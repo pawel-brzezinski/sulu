@@ -16,8 +16,6 @@ use Gaufrette\Filesystem;
 use Sulu\Bundle\MediaBundle\Media\Exception\FilenameAlreadyExistsException;
 use Sulu\Bundle\MediaBundle\Media\Exception\ImageProxyMediaNotFoundException;
 use Sulu\Bundle\MediaBundle\Media\Filesystem\S3FilesystemBridge;
-use Symfony\Component\HttpKernel\Log\DebugLoggerInterface;
-use Symfony\Component\HttpKernel\Log\NullLogger;
 
 class S3Storage implements StorageInterface
 {
@@ -42,25 +40,22 @@ class S3Storage implements StorageInterface
     private $segments;
 
     /**
-     * @var DebugLoggerInterface
-     */
-    protected $logger;
-
-    /**
      * @var Filesystem
      */
     private $filesystem;
 
-    public function __construct(
-        S3FilesystemBridge $filesystemBridge,
-        $uploadPath,
-        $segments,
-        DebugLoggerInterface $logger = null
-    ){
+    /**
+     * S3Storage constructor.
+     *
+     * @param S3FilesystemBridge $filesystemBridge
+     * @param $uploadPath
+     * @param $segments
+     */
+    public function __construct(S3FilesystemBridge $filesystemBridge, $uploadPath, $segments)
+    {
         $this->filesystem = $filesystemBridge->getFilesystem();
         $this->uploadPath = $uploadPath;
         $this->segments = $segments;
-        $this->logger = $logger ?: new NullLogger();
     }
 
     /**
@@ -81,12 +76,9 @@ class S3Storage implements StorageInterface
         $fileName = $this->getUniqueFileName($segmentPath, $fileName);
         $filePath = $this->getPathByFolderAndFileName($segmentPath, $fileName);
 
-        $this->logger->debug('Try to write File "' . $tempPath . '" to "' . $this->bucketName . '" S3 bucket in path"' . $filePath . '"');
-
         if ($this->filesystem->has($filePath)) {
             throw new FilenameAlreadyExistsException($filePath);
         }
-
 
         $this->filesystem->write($filePath, file_get_contents($tempPath));
 
@@ -174,8 +166,6 @@ class S3Storage implements StorageInterface
         }
 
         $filePath = $this->getPathByFolderAndFileName($folder, $newFileName);
-
-        $this->logger->debug('Check FilePath: ' . $filePath);
 
         if (!$this->filesystem->has($filePath)) {
             return $newFileName;
