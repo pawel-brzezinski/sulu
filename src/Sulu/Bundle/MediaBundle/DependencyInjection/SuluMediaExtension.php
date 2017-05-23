@@ -125,18 +125,27 @@ class SuluMediaExtension extends Extension implements PrependExtensionInterface
             $config['format_manager']['blocked_file_types']
         );
 
+        // storage type
+        $storageType = $config['storage']['type'];
+        $container->setParameter('sulu_media.media.storage.type', $storageType);
+
+        if (!isset($config['storage'][$storageType])) {
+            throw new \InvalidArgumentException(sprintf('Configuration for storage type "%s" is not defined.', $storageType));
+        }
+
         // local storage
         $container->setParameter('sulu_media.media.storage.local.path', $config['storage']['local']['path']);
         $container->setParameter('sulu_media.media.storage.local.segments', $config['storage']['local']['segments']);
 
         // s3 storage
-        $container->setParameter('sulu_media.media.storage.type', $config['storage']['type']);
-        $container->setParameter('sulu_media.media.storage.s3.path', $config['storage']['s3']['path']);
-        $container->setParameter('sulu_media.media.storage.s3.segments', $config['storage']['s3']['segments']);
-        $container->setParameter('sulu_media.media.storage.s3.api_key', $config['storage']['s3']['api_key']);
-        $container->setParameter('sulu_media.media.storage.s3.api_secret', $config['storage']['s3']['api_secret']);
-        $container->setParameter('sulu_media.media.storage.s3.bucket_name', $config['storage']['s3']['bucket_name']);
-        $container->setParameter('sulu_media.media.storage.s3.bucket_region', $config['storage']['s3']['bucket_region']);
+        if (isset($config['storage']['s3'])) {
+            $container->setParameter('sulu_media.media.storage.s3.path', $config['storage']['s3']['path']);
+            $container->setParameter('sulu_media.media.storage.s3.segments', $config['storage']['s3']['segments']);
+            $container->setParameter('sulu_media.media.storage.s3.api_key', $config['storage']['s3']['api_key']);
+            $container->setParameter('sulu_media.media.storage.s3.api_secret', $config['storage']['s3']['api_secret']);
+            $container->setParameter('sulu_media.media.storage.s3.bucket_name', $config['storage']['s3']['bucket_name']);
+            $container->setParameter('sulu_media.media.storage.s3.bucket_region', $config['storage']['s3']['bucket_region']);
+        }
 
         // collections
         $container->setParameter('sulu_media.collection.type.default', ['id' => 1]);
