@@ -11,7 +11,11 @@
 
 namespace Sulu\Bundle\MediaBundle\Tests\Unit\Media\FormatCache;
 
+use Aws\S3\S3Client;
+use Gaufrette\Adapter\AwsS3 as AwsS3Adapter;
 use Gaufrette\Filesystem;
+use Sulu\Bundle\MediaBundle\Media\Exception\ImageProxyInvalidUrl;
+use Sulu\Bundle\MediaBundle\Media\Exception\ImageProxyUrlNotFoundException;
 use Sulu\Bundle\MediaBundle\Media\Filesystem\S3FilesystemBridge;
 use Sulu\Bundle\MediaBundle\Media\FormatCache\S3FormatCache;
 use Symfony\Component\HttpKernel\Log\DebugLoggerInterface;
@@ -67,9 +71,6 @@ class S3FormatCacheTest extends \PHPUnit_Framework_TestCase
         ];
     }
 
-    /**
-     * Test save without exception
-     */
     public function testSaveWithoutException()
     {
         $fsMock = $this->getMockBuilder(Filesystem::class)
@@ -86,13 +87,8 @@ class S3FormatCacheTest extends \PHPUnit_Framework_TestCase
         $result = $formatCache->save(file_get_contents($this->getImagePath()), 1, 'photo.jpeg', [], '640x480');
 
         $this->assertTrue($result);
-
-//        /sulu/web/uploads/media/640x480/0/1-photo.jpeg
     }
 
-    /**
-     * Test save with exception
-     */
     public function testSaveWithException()
     {
         $fsMock = $this->getMockBuilder(Filesystem::class)
@@ -111,9 +107,6 @@ class S3FormatCacheTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($result);
     }
 
-    /**
-     * Test purge formats
-     */
     public function testPurge()
     {
         $fsMock = $this->getMockBuilder(Filesystem::class)
@@ -133,12 +126,136 @@ class S3FormatCacheTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($formatCache->purge(1, 'photo.jpeg', []));
     }
 
-    /**
-     * Test get media format
-     */
-    public function testCachedGetMediaUrl()
+    public function testGetMediaUrlAlreadyCached()
     {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['has', 'getAdapter'])
+            ->getMock();
+        $fsMock->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+        $fsMock->expects($this->once())
+            ->method('getAdapter')
+            ->willReturn($this->getS3Adapter());
 
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $formatCache = $this->getS3FormatCacheInstance($bridgeMock);
+
+        $expected = $this->getS3Adapter()->getUrl('sulu/web/uploads/media/640x480/0/1-photo.jpeg') . '?v=1-0';
+        $result = $formatCache->getMediaUrl(1, 'photo.jpeg', [], '640x480', 1, 0);
+
+        $this->assertEquals($expected, $result);
+    }
+
+    public function testGetMediaUrlNotCached()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['has'])
+            ->getMock();
+        $fsMock->expects($this->once())
+            ->method('has')
+            ->willReturn(false);
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $formatCache = $this->getS3FormatCacheInstance($bridgeMock);
+
+        $expected = '/uploads/media/640x480/0/1-photo.jpeg?v=1-0';
+        $result = $formatCache->getMediaUrl(1, 'photo.jpeg', [], '640x480', 1, 0);
+
+        $this->assertEquals($expected, $result);
+    }
+
+    public function testAnalyzedMediaUrl()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $formatCache = $this->getS3FormatCacheInstance($bridgeMock);
+
+        $result = $formatCache->analyzedMediaUrl('/uploads/media/640x480/0/1-photo.jpeg');
+
+        $this->assertEquals([1, '640x480'], $result);
+    }
+
+    public function testAnalyzedMediaUrlWithEmptyUrl()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $formatCache = $this->getS3FormatCacheInstance($bridgeMock);
+
+        $this->setExpectedException(ImageProxyUrlNotFoundException::class);
+        $formatCache->analyzedMediaUrl(null);
+    }
+
+    public function testAnalyzedMediaUrlWithNoId()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $formatCache = $this->getS3FormatCacheInstance($bridgeMock);
+
+        $this->setExpectedException(ImageProxyInvalidUrl::class);
+        $formatCache->analyzedMediaUrl('/uploads/media/640x480/0/photo.jpeg');
+    }
+
+    public function testAnalyzedMediaUrlWithWrongId()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $formatCache = $this->getS3FormatCacheInstance($bridgeMock);
+
+        $this->setExpectedException(ImageProxyInvalidUrl::class);
+        $formatCache->analyzedMediaUrl('/uploads/media/640x480/0/foo-photo.jpeg');
+    }
+
+    public function testAnalyzedMediaUrlWithWrongFormat()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $formatCache = $this->getS3FormatCacheInstance($bridgeMock);
+
+        $this->setExpectedException(ImageProxyInvalidUrl::class);
+        $formatCache->analyzedMediaUrl('1-photo.jpeg');
+    }
+
+    public function testClear()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['listKeys', 'has', 'delete'])
+            ->getMock();
+        $fsMock->expects($this->once())
+            ->method('listKeys')
+            ->willReturn([
+                'sulu/web/uploads/media/640x480/0/1-photo.jpeg',
+                'sulu/web/uploads/media/640x480/0/2-image.jpeg',
+            ]);
+        $fsMock->expects($this->exactly(2))
+            ->method('has')
+            ->willReturn(true);
+        $fsMock->expects($this->exactly(2))
+            ->method('delete')
+            ->willReturn(true);
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $formatCache = $this->getS3FormatCacheInstance($bridgeMock);
+
+        $formatCache->clear();
     }
 
     /**
@@ -173,6 +290,23 @@ class S3FormatCacheTest extends \PHPUnit_Framework_TestCase
             1,
             $this->formats
         );
+    }
+
+    /**
+     * @return AwsS3Adapter
+     */
+    private function getS3Adapter()
+    {
+        $s3Client = new S3Client([
+            'credentials' => [
+                'key' => 'apiKey',
+                'secret' => 'apiSecret',
+            ],
+            'version' => 'latest',
+            'region' => 'eu-central-1',
+        ]);
+
+        return new AwsS3Adapter($s3Client, 'sulu_bucket');
     }
 
     /**
