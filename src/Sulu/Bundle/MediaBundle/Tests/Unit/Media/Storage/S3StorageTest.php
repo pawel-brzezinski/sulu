@@ -108,10 +108,11 @@ class S3FilesystemBridgeTest extends \PHPUnit_Framework_TestCase
         $storage->save($this->getImagePath(), 'photo.jpeg', 1);
     }
 
-    public function testLoad()
+    /**
+     * Test load path with correct storage option
+     */
+    public function testLoadWithCorrectStorageOption()
     {
-        $mediaPath = 'sulu/uploads/media/1/photo.jpeg';
-
         $fsMock = $this->getMockBuilder(Filesystem::class)
             ->disableOriginalConstructor()
             ->setMethods(['getAdapter'])
@@ -122,20 +123,37 @@ class S3FilesystemBridgeTest extends \PHPUnit_Framework_TestCase
         $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
         $storage = $this->getS3StorageInstance($bridgeMock);
 
-        // Test correct storage option
         $storageOption = json_encode(['segment' => '1', 'fileName' => 'photo.jpeg']);
+        $mediaPath = 'sulu/uploads/media/1/photo.jpeg';
+
         $result = $storage->load($mediaPath, 1, $storageOption);
         $this->assertEquals(
             'https://s3.eu-central-1.amazonaws.com/sulu_bucket/sulu/uploads/media/1/photo.jpeg',
             $result
         );
+    }
 
-        // Test wrong storage option
+    /**
+     * Test load path with wrong storage option
+     */
+    public function testLoadWithWrongStorageOption()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $storage = $this->getS3StorageInstance($bridgeMock);
+
         $storageOption = json_encode(['fileName' => 'photo.jpeg']);
+        $mediaPath = 'sulu/uploads/media/1/photo.jpeg';
+
         $result = $storage->load($mediaPath, 1, $storageOption);
         $this->assertFalse($result);
     }
 
+    /**
+     * Test load file as string with correct storage option
+     */
     public function testLoadAsStringWithCorrectStorageOption()
     {
         $mediaPath = 'sulu/uploads/media/1/photo.jpeg';
@@ -161,6 +179,9 @@ class S3FilesystemBridgeTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(file_get_contents($this->getImagePath()), $result);
     }
 
+    /**
+     * Test load file as string with wrong storage option
+     */
     public function testLoadAsStringWithWrongStorageOption()
     {
         $storageOption = json_encode(['segment' => '1']);
@@ -173,6 +194,69 @@ class S3FilesystemBridgeTest extends \PHPUnit_Framework_TestCase
 
         $this->setExpectedException(ImageProxyMediaNotFoundException::class);
         $storage->loadAsString('photo.jpeg', 1, $storageOption);
+    }
+
+    /**
+     * Test remove media with correct storage option
+     */
+    public function testRemoveWithCorrectStorageOption()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['has', 'delete'])
+            ->getMock();
+        $fsMock->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+        $fsMock->expects($this->once())
+            ->method('delete');
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $storage = $this->getS3StorageInstance($bridgeMock);
+
+        $storageOption = json_encode(['segment' => '1', 'fileName' => 'photo.jpeg']);
+        $storage->remove($storageOption);
+    }
+
+    /**
+     * Test remove media with wrong storage option
+     */
+    public function testRemoveWithWrongStorageOption()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $storage = $this->getS3StorageInstance($bridgeMock);
+
+        $storageOption = json_encode(['segment' => '1']);
+
+        $this->assertFalse($storage->remove($storageOption));
+    }
+
+    /**
+     * Test remove media when filesystem will return exception
+     */
+    public function testRemoveWithFilesystemException()
+    {
+        $fsMock = $this->getMockBuilder(Filesystem::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['has', 'delete'])
+            ->getMock();
+        $fsMock->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+        $fsMock->expects($this->once())
+            ->method('delete')
+            ->will($this->throwException(new \Exception()));
+
+        $bridgeMock = $this->getS3FilesystemBridgeMock($fsMock);
+        $storage = $this->getS3StorageInstance($bridgeMock);
+
+        $storageOption = json_encode(['segment' => '1', 'fileName' => 'photo.jpeg']);
+
+        $this->assertFalse($storage->remove($storageOption));
     }
 
     /**
